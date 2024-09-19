@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface Stats {
   totalUsers: number;
@@ -7,20 +7,24 @@ interface Stats {
 
 function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
+    const fetchStats = async () => {
+      if (fetchedRef.current) return; // Skip if we've already fetched
+      fetchedRef.current = true;
+
+      try {
+        const response = await fetch('http://localhost:8787/stats');
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
     fetchStats();
   }, []);
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('http://localhost:8787/stats');
-      const data = await response.json();
-      setStats(data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
 
   return (
     <div className="flex items-center justify-center p-8">

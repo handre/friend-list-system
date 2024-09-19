@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface User {
   id: number;
@@ -10,20 +10,24 @@ interface User {
 function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
   const [newUser, setNewUser] = useState({ name: '', email: '' });
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
+    const fetchUsers = async () => {
+      if (fetchedRef.current) return; // Skip if we've already fetched
+      fetchedRef.current = true;
+
+      try {
+        const response = await fetch('http://localhost:8787/users');
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+
     fetchUsers();
   }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('http://localhost:8787/users');
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
 
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +58,16 @@ function AdminPanel() {
       }
     } catch (error) {
       console.error('Error deleting user:', error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:8787/users');
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
   };
 
