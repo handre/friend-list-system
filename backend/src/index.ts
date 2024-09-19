@@ -113,25 +113,20 @@ app.get('/users/:id/friends', async (c) => {
 app.get('/stats', async (c) => {
   const db = getDb();
   try {
-    const totalUsers = await db.select({ count: sql<number>`cast(count(*) as int)` }).from(users);
-    const avgFriends = await db.select({ 
-      avg: sql<number>`friend_count` 
-    })
-    .from(
-      db.select({
-        userId: friendships.userId,
-        friend_count: sql<number>`cast(count(*) as int)`
-      })
-      .from(friendships)
-      .groupBy(friendships.userId)
-      .as('friend_count')
-    );
+    const stats = await db.select({
+      totalUsers: sql<number>`cast(count(distinct ${users.id}) as int)`,
+      totalFriendships: sql<number>`cast(count(${friendships.id}) as int)`,
+    }).from(users)
+    .leftJoin(friendships, eq(users.id, friendships.userId));
+
+    const averageFriends = (stats[0]?.totalFriendships ?? 0) / (stats[0]?.totalUsers ?? 1);
 
     return c.json({ 
-      totalUsers: totalUsers[0]?.count ?? 0, 
-      averageFriends: avgFriends[0]?.avg ?? 0 
+      totalUsers: stats[0]?.totalUsers || 0,
+      averageFriends: parseFloat(averageFriends.toFixed(2))
     })
   } catch (error) {
+    console.error('Error calculating stats:', error);
     return c.json({ error: 'Error calculating stats' }, 500)
   }
 })
