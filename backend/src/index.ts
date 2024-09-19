@@ -15,7 +15,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { db } from "./db";
 import { users, friendships } from "./db/schema";
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, or } from 'drizzle-orm';
 
 // Define the environment interface
 interface Env {
@@ -140,6 +140,35 @@ app.get('/stats', async (c) => {
     })
   } catch (error) {
     return c.json({ error: 'Error calculating stats' }, 500)
+  }
+})
+
+// Delete user and associated friendships
+app.delete('/users/:id', async (c) => {
+  const userId = parseInt(c.req.param('id'))
+  try {
+    await db.transaction(async (tx) => {
+      // Delete all friendships where the user is either the user or the friend
+      await tx.delete(friendships).where(
+        or(
+          eq(friendships.userId, userId),
+          eq(friendships.friendId, userId)
+        )
+      );
+      // Delete the user
+      const deletedUser = await tx.delete(users).where(eq(users.id, userId)).returning();
+      
+      if (deletedUser.length === 0) {
+        throw new Error('User not found');
+      }
+    });
+    return c.json({ message: 'User and associated friendships deleted successfully' }, 200)
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    if (error.message === 'User not found') {
+      return c.json({ error: 'User not found' }, 404)
+    }
+    return c.json({ error: 'Error deleting user' }, 500)
   }
 })
 

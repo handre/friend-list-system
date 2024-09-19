@@ -49,6 +49,8 @@ function AdminPanel() {
       });
       if (response.ok) {
         fetchUsers();
+      } else {
+        console.error('Error deleting user:', await response.text());
       }
     } catch (error) {
       console.error('Error deleting user:', error);
