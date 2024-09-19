@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
+import UserManagement from './components/UserManagement';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/user/:id" element={<UserManagement />} />
         </Routes>
       </div>
     </Router>

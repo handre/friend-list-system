@@ -15,7 +15,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { getDb } from "./db";
 import { users, friendships } from "./db/schema";
-import { eq, and, sql, or } from 'drizzle-orm';
+import { eq, and, sql, or, like } from 'drizzle-orm';
 
 // Define the environment interface
 interface Env {
@@ -136,6 +136,24 @@ app.get('/stats', async (c) => {
   }
 })
 
+// Search users
+app.get('/users/search', async (c) => {
+  const query = c.req.query('q')
+  const db = getDb();
+  try {
+    const searchResults = await db.select()
+      .from(users)
+      .where(or(
+        like(users.name, `%${query}%`),
+        like(users.email, `%${query}%`)
+      ))
+      .limit(10);
+    return c.json(searchResults)
+  } catch (error) {
+    return c.json({ error: 'Error searching users' }, 500)
+  }
+})
+
 // Delete user and associated friendships
 app.delete('/users/:id', async (c) => {
   const userId = parseInt(c.req.param('id'))
@@ -165,5 +183,21 @@ app.delete('/users/:id', async (c) => {
     return c.json({ error: 'Error deleting user' }, 500)
   }
 })
+
+// Get a single user
+app.get('/users/:id', async (c) => {
+  const userId = parseInt(c.req.param('id'))
+  const db = getDb();
+  try {
+    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (user.length === 0) {
+      return c.json({ error: 'User not found' }, 404)
+    }
+    return c.json(user[0])
+  } catch (error) {
+    return c.json({ error: 'Error fetching user' }, 500)
+  }
+})
+
 
 export default app

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 
 interface User {
   id: number;
@@ -122,10 +123,16 @@ function AdminPanel() {
                 <td className="p-2">
                   <button
                     onClick={() => deleteUser(user.id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 mr-2"
                   >
                     Delete
                   </button>
+                  <Link
+                    to={`/user/${user.id}`}
+                    className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                  >
+                    Manage
+                  </Link>
                 </td>
               </tr>
             ))}
