@@ -13,7 +13,7 @@
 
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { db } from "./db";
+import { getDb } from "./db";
 import { users, friendships } from "./db/schema";
 import { eq, and, sql, or } from 'drizzle-orm';
 
@@ -35,24 +35,12 @@ app.use('*', cors({
   credentials: true,
 }))
 
-// JWT middleware
-app.use('/api/*', async (c, next) => {
-//   const auth = jwt({
-//     secret: c.env.JWT_SECRET,
-//   })
-//   return auth(c, next)
-})
-
-// Database connection
-app.use('*', async (c, next) => {
-  await next()
-})
-
 app.get('/', (c) => c.text('Friends List API'))
 
 // Create a new user
 app.post('/users', async (c) => {
   const { name, email } = await c.req.json()
+  const db = getDb();
   try {
     const newUser = await db.insert(users).values({ name, email }).returning();
     return c.json(newUser[0], 201)
@@ -63,6 +51,7 @@ app.post('/users', async (c) => {
 
 // Get all users
 app.get('/users', async (c) => {
+  const db = getDb();
   try {
     const allUsers = await db.select().from(users);
     return c.json(allUsers)
@@ -75,6 +64,7 @@ app.get('/users', async (c) => {
 app.post('/users/:id/friends', async (c) => {
   const userId = parseInt(c.req.param('id'))
   const { friendId } = await c.req.json()
+  const db = getDb();
   try {
     const newFriendship = await db.insert(friendships).values({ userId, friendId }).returning();
     return c.json(newFriendship[0], 201)
@@ -87,6 +77,7 @@ app.post('/users/:id/friends', async (c) => {
 app.delete('/users/:id/friends/:friendId', async (c) => {
   const userId = parseInt(c.req.param('id'))
   const friendId = parseInt(c.req.param('friendId'))
+  const db = getDb();
   try {
     await db.delete(friendships)
       .where(and(
@@ -102,6 +93,7 @@ app.delete('/users/:id/friends/:friendId', async (c) => {
 // Get user's friends
 app.get('/users/:id/friends', async (c) => {
   const userId = parseInt(c.req.param('id'))
+  const db = getDb();
   try {
     const friends = await db.select({
       id: users.id,
@@ -119,6 +111,7 @@ app.get('/users/:id/friends', async (c) => {
 
 // Get stats
 app.get('/stats', async (c) => {
+  const db = getDb();
   try {
     const totalUsers = await db.select({ count: sql<number>`cast(count(*) as int)` }).from(users);
     const avgFriends = await db.select({ 
@@ -146,6 +139,7 @@ app.get('/stats', async (c) => {
 // Delete user and associated friendships
 app.delete('/users/:id', async (c) => {
   const userId = parseInt(c.req.param('id'))
+  const db = getDb();
   try {
     await db.transaction(async (tx) => {
       // Delete all friendships where the user is either the user or the friend
@@ -164,10 +158,10 @@ app.delete('/users/:id', async (c) => {
     });
     return c.json({ message: 'User and associated friendships deleted successfully' }, 200)
   } catch (error) {
-    console.error('Error deleting user:', error);
-    if (error.message === 'User not found') {
+    if (error instanceof Error && error.message === 'User not found') {
       return c.json({ error: 'User not found' }, 404)
     }
+    console.error('Error deleting user:', error);
     return c.json({ error: 'Error deleting user' }, 500)
   }
 })
