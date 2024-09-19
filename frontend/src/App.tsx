@@ -1,50 +1,35 @@
-import React, { useState, useEffect } from 'react';
-
-interface Stats {
-  totalUsers: number;
-  averageFriends: number;
-}
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import Dashboard from './components/Dashboard';
+import AdminPanel from './components/AdminPanel';
 
 function App() {
-  const [stats, setStats] = useState<Stats | null>(null);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      // Update the URL to directly call the backend API
-      const response = await fetch('http://localhost:8787/stats');
-      const data = await response.json();
-      setStats(data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Friends List System</h1>
-        {stats ? (
-          <div className="space-y-4">
-            <div className="bg-blue-100 rounded-lg p-4">
-              <h2 className="text-xl font-semibold text-blue-800 mb-2">Total Users</h2>
-              <p className="text-4xl font-bold text-blue-600">{stats.totalUsers}</p>
-            </div>
-            <div className="bg-purple-100 rounded-lg p-4">
-              <h2 className="text-xl font-semibold text-purple-800 mb-2">Average Friends per User</h2>
-              <p className="text-4xl font-bold text-purple-600">{stats.averageFriends.toFixed(2)}</p>
+    <Router>
+      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
+        <nav className="bg-white shadow-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16">
+              <div className="flex">
+                <Link to="/" className="flex-shrink-0 flex items-center">
+                  <span className="text-xl font-bold text-gray-800">Friends List System</span>
+                </Link>
+              </div>
+              <div className="flex items-center">
+                <Link to="/admin" className="text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-md">
+                  Admin Panel
+                </Link>
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="flex justify-center items-center h-40">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        )}
+        </nav>
+
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/admin" element={<AdminPanel />} />
+        </Routes>
       </div>
-    </div>
+    </Router>
   );
 }
 
