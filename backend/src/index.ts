@@ -69,8 +69,20 @@ app.get('/users', zValidator('query', getUsersQuerySchema), async (c) => {
 
   try {
     const [allUsers, totalCount] = await Promise.all([
-      db.select().from(users).limit(limit).offset(offset),
-      db.select({ count: sql<number>`cast(count(*) as int)` }).from(users)
+      db
+        .select({
+          // Select individual user fields instead of spreading the table
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          friendCount: sql<number>`COUNT(friendships.id)`.as('friendCount')
+        })
+        .from(users)
+        .leftJoin(friendships, eq(users.id, friendships.userId))
+        .groupBy(users.id)
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`CAST(COUNT(*) AS INT)` }).from(users)
     ]);
 
     return c.json({
