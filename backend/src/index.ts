@@ -16,6 +16,8 @@ import { cors } from 'hono/cors'
 import { getDb } from "./db";
 import { users, friendships } from "./db/schema";
 import { eq, and, sql, or, like } from 'drizzle-orm';
+import { z } from 'zod'
+import { zValidator } from '@hono/zod-validator'
 
 // Define the environment interface
 interface Env {
@@ -38,8 +40,13 @@ app.use('*', cors({
 app.get('/', (c) => c.text('Friends List API'))
 
 // Create a new user
-app.post('/users', async (c) => {
-  const { name, email } = await c.req.json()
+const createUserSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email()
+})
+
+app.post('/users', zValidator('json', createUserSchema), async (c) => {
+  const { name, email } = c.req.valid('json')
   const db = getDb();
   try {
     const newUser = await db.insert(users).values({ name, email }).returning();
@@ -50,9 +57,13 @@ app.post('/users', async (c) => {
 })
 
 // Get all users
-app.get('/users', async (c) => {
+const getUsersQuerySchema = z.object({
+  page: z.string().regex(/^\d+$/).transform(Number).default('1')
+})
+
+app.get('/users', zValidator('query', getUsersQuerySchema), async (c) => {
+  const { page } = c.req.valid('query')
   const db = getDb();
-  const page = parseInt(c.req.query('page') || '1');
   const limit = 5;
   const offset = (page - 1) * limit;
 
@@ -64,7 +75,7 @@ app.get('/users', async (c) => {
 
     return c.json({
       users: allUsers,
-      totalPages: Math.ceil(totalCount[0].count / limit),
+      totalPages: Math.ceil((totalCount[0]?.count ?? 0) / limit),
       currentPage: page
     });
   } catch (error) {
@@ -73,9 +84,13 @@ app.get('/users', async (c) => {
 })
 
 // Add a friend
-app.post('/users/:id/friends', async (c) => {
+const addFriendSchema = z.object({
+  friendId: z.number().int().positive()
+})
+
+app.post('/users/:id/friends', zValidator('json', addFriendSchema), async (c) => {
   const userId = parseInt(c.req.param('id'))
-  const { friendId } = await c.req.json()
+  const { friendId } = c.req.valid('json')
   const db = getDb();
   try {
     const newFriendship = await db.insert(friendships).values({ userId, friendId }).returning();
@@ -86,9 +101,13 @@ app.post('/users/:id/friends', async (c) => {
 })
 
 // Remove a friend
-app.delete('/users/:id/friends/:friendId', async (c) => {
-  const userId = parseInt(c.req.param('id'))
-  const friendId = parseInt(c.req.param('friendId'))
+const removeFriendParamsSchema = z.object({
+  id: z.string().regex(/^\d+$/).transform(Number),
+  friendId: z.string().regex(/^\d+$/).transform(Number)
+})
+
+app.delete('/users/:id/friends/:friendId', zValidator('param', removeFriendParamsSchema), async (c) => {
+  const { id: userId, friendId } = c.req.valid('param')
   const db = getDb();
   try {
     await db.delete(friendships)
@@ -103,9 +122,14 @@ app.delete('/users/:id/friends/:friendId', async (c) => {
 })
 
 // Get user's friends
-app.get('/users/:id/friends', async (c) => {
-  const userId = parseInt(c.req.param('id'))
-  const page = parseInt(c.req.query('page') || '1');
+const getUserFriendsSchema = z.object({
+  id: z.string().regex(/^\d+$/).transform(Number),
+  page: z.string().regex(/^\d+$/).transform(Number).default('1')
+})
+
+app.get('/users/:id/friends', zValidator('param', getUserFriendsSchema.pick({ id: true })), zValidator('query', getUserFriendsSchema.pick({ page: true })), async (c) => {
+  const { id: userId } = c.req.valid('param')
+  const { page } = c.req.valid('query')
   const limit = 5;
   const offset = (page - 1) * limit;
   const db = getDb();
@@ -129,7 +153,7 @@ app.get('/users/:id/friends', async (c) => {
 
     return c.json({
       friends,
-      totalPages: Math.ceil(totalCount[0].count / limit),
+      totalPages: Math.ceil((totalCount[0]?.count ?? 0) / limit),
       currentPage: page
     });
   } catch (error) {
@@ -160,9 +184,13 @@ app.get('/stats', async (c) => {
 })
 
 // Search users
-app.get('/users/search', async (c) => {
-  const query = c.req.query('q');
-  const page = parseInt(c.req.query('page') || '1');
+const searchUsersSchema = z.object({
+  q: z.string().min(1),
+  page: z.string().regex(/^\d+$/).transform(Number).default('1')
+})
+
+app.get('/users/search', zValidator('query', searchUsersSchema), async (c) => {
+  const { q: query, page } = c.req.valid('query')
   const limit = 5;
   const offset = (page - 1) * limit;
   const db = getDb();
@@ -187,7 +215,7 @@ app.get('/users/search', async (c) => {
 
     return c.json({
       users: searchResults,
-      totalPages: Math.ceil(totalCount[0].count / limit),
+      totalPages: Math.ceil((totalCount[0]?.count ?? 0) / limit),
       currentPage: page
     });
   } catch (error) {
@@ -196,8 +224,12 @@ app.get('/users/search', async (c) => {
 })
 
 // Delete user and associated friendships
-app.delete('/users/:id', async (c) => {
-  const userId = parseInt(c.req.param('id'))
+const deleteUserSchema = z.object({
+  id: z.string().regex(/^\d+$/).transform(Number)
+})
+
+app.delete('/users/:id', zValidator('param', deleteUserSchema), async (c) => {
+  const { id: userId } = c.req.valid('param')
   const db = getDb();
   try {
     await db.transaction(async (tx) => {
@@ -226,8 +258,8 @@ app.delete('/users/:id', async (c) => {
 })
 
 // Get a single user
-app.get('/users/:id', async (c) => {
-  const userId = parseInt(c.req.param('id'))
+app.get('/users/:id', zValidator('param', deleteUserSchema), async (c) => {
+  const { id: userId } = c.req.valid('param')
   const db = getDb();
   try {
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
