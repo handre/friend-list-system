@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Pagination from './Pagination';
 
 interface User {
   id: number;
@@ -11,24 +12,24 @@ interface User {
 function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
   const [newUser, setNewUser] = useState({ name: '', email: '' });
-  const fetchedRef = useRef(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (fetchedRef.current) return; // Skip if we've already fetched
-      fetchedRef.current = true;
+    fetchUsers(currentPage);
+  }, [currentPage]);
 
-      try {
-        const response = await fetch('http://localhost:8787/users');
-        const data = await response.json();
-        setUsers(data);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
-
-    fetchUsers();
-  }, []);
+  const fetchUsers = async (page: number) => {
+    try {
+      const response = await fetch(`http://localhost:8787/users?page=${page}`);
+      const data = await response.json();
+      setUsers(data.users);
+      setTotalPages(data.totalPages);
+      setCurrentPage(data.currentPage);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +41,7 @@ function AdminPanel() {
       });
       if (response.ok) {
         setNewUser({ name: '', email: '' });
-        fetchUsers();
+        fetchUsers(1);
       }
     } catch (error) {
       console.error('Error creating user:', error);
@@ -53,22 +54,12 @@ function AdminPanel() {
         method: 'DELETE',
       });
       if (response.ok) {
-        fetchUsers();
+        fetchUsers(1);
       } else {
         console.error('Error deleting user:', await response.text());
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('http://localhost:8787/users');
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
     }
   };
 
@@ -138,6 +129,11 @@ function AdminPanel() {
             ))}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );

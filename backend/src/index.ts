@@ -52,11 +52,23 @@ app.post('/users', async (c) => {
 // Get all users
 app.get('/users', async (c) => {
   const db = getDb();
+  const page = parseInt(c.req.query('page') || '1');
+  const limit = 5;
+  const offset = (page - 1) * limit;
+
   try {
-    const allUsers = await db.select().from(users);
-    return c.json(allUsers)
+    const [allUsers, totalCount] = await Promise.all([
+      db.select().from(users).limit(limit).offset(offset),
+      db.select({ count: sql<number>`cast(count(*) as int)` }).from(users)
+    ]);
+
+    return c.json({
+      users: allUsers,
+      totalPages: Math.ceil(totalCount[0].count / limit),
+      currentPage: page
+    });
   } catch (error) {
-    return c.json({ error: 'Error fetching users' }, 500)
+    return c.json({ error: 'Error fetching users' }, 500);
   }
 })
 
@@ -93,19 +105,35 @@ app.delete('/users/:id/friends/:friendId', async (c) => {
 // Get user's friends
 app.get('/users/:id/friends', async (c) => {
   const userId = parseInt(c.req.param('id'))
+  const page = parseInt(c.req.query('page') || '1');
+  const limit = 5;
+  const offset = (page - 1) * limit;
   const db = getDb();
+
   try {
-    const friends = await db.select({
-      id: users.id,
-      name: users.name,
-      email: users.email
-    })
-    .from(friendships)
-    .innerJoin(users, eq(friendships.friendId, users.id))
-    .where(eq(friendships.userId, userId));
-    return c.json(friends)
+    const [friends, totalCount] = await Promise.all([
+      db.select({
+        id: users.id,
+        name: users.name,
+        email: users.email
+      })
+      .from(friendships)
+      .innerJoin(users, eq(friendships.friendId, users.id))
+      .where(eq(friendships.userId, userId))
+      .limit(limit)
+      .offset(offset),
+      db.select({ count: sql<number>`cast(count(*) as int)` })
+        .from(friendships)
+        .where(eq(friendships.userId, userId))
+    ]);
+
+    return c.json({
+      friends,
+      totalPages: Math.ceil(totalCount[0].count / limit),
+      currentPage: page
+    });
   } catch (error) {
-    return c.json({ error: 'Error fetching friends' }, 500)
+    return c.json({ error: 'Error fetching friends' }, 500);
   }
 })
 
@@ -133,19 +161,37 @@ app.get('/stats', async (c) => {
 
 // Search users
 app.get('/users/search', async (c) => {
-  const query = c.req.query('q')
+  const query = c.req.query('q');
+  const page = parseInt(c.req.query('page') || '1');
+  const limit = 5;
+  const offset = (page - 1) * limit;
   const db = getDb();
+
   try {
-    const searchResults = await db.select()
-      .from(users)
-      .where(or(
-        like(users.name, `%${query}%`),
-        like(users.email, `%${query}%`)
-      ))
-      .limit(10);
-    return c.json(searchResults)
+    const [searchResults, totalCount] = await Promise.all([
+      db.select()
+        .from(users)
+        .where(or(
+          like(users.name, `%${query}%`),
+          like(users.email, `%${query}%`)
+        ))
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`cast(count(*) as int)` })
+        .from(users)
+        .where(or(
+          like(users.name, `%${query}%`),
+          like(users.email, `%${query}%`)
+        ))
+    ]);
+
+    return c.json({
+      users: searchResults,
+      totalPages: Math.ceil(totalCount[0].count / limit),
+      currentPage: page
+    });
   } catch (error) {
-    return c.json({ error: 'Error searching users' }, 500)
+    return c.json({ error: 'Error searching users' }, 500);
   }
 })
 

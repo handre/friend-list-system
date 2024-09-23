@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { debounce } from 'lodash';
+import Pagination from './Pagination';
 
 interface User {
   id: number;
@@ -21,11 +22,15 @@ function UserManagement() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [friendsCurrentPage, setFriendsCurrentPage] = useState(1);
+  const [friendsTotalPages, setFriendsTotalPages] = useState(1);
+  const [searchCurrentPage, setSearchCurrentPage] = useState(1);
+  const [searchTotalPages, setSearchTotalPages] = useState(1);
 
   useEffect(() => {
     fetchUserDetails();
-    fetchFriends();
-  }, [id]);
+    fetchFriends(friendsCurrentPage);
+  }, [id, friendsCurrentPage]);
 
   const fetchUserDetails = async () => {
     try {
@@ -37,32 +42,37 @@ function UserManagement() {
     }
   };
 
-  const fetchFriends = async () => {
+  const fetchFriends = async (page: number) => {
     try {
-      const response = await fetch(`http://localhost:8787/users/${id}/friends`);
+      const response = await fetch(`http://localhost:8787/users/${id}/friends?page=${page}`);
       const data = await response.json();
-      setFriends(data);
+      setFriends(data.friends);
+      setFriendsTotalPages(data.totalPages);
+      setFriendsCurrentPage(data.currentPage);
     } catch (error) {
       console.error('Error fetching friends:', error);
     }
   };
 
-  const searchUsers = async (query: string) => {
+  const searchUsers = async (query: string, page: number) => {
     if (!query.trim()) {
       setSearchResults([]);
+      setSearchTotalPages(1);
       return;
     }
     try {
-      const response = await fetch(`http://localhost:8787/users/search?q=${query}`);
+      const response = await fetch(`http://localhost:8787/users/search?q=${query}&page=${page}`);
       const data = await response.json();
-      setSearchResults(data);
+      setSearchResults(data.users);
+      setSearchTotalPages(data.totalPages);
+      setSearchCurrentPage(data.currentPage);
     } catch (error) {
       console.error('Error searching users:', error);
     }
   };
 
   const debouncedSearch = useCallback(
-    debounce((query: string) => searchUsers(query), 300),
+    debounce((query: string) => searchUsers(query, 1), 300),
     []
   );
 
@@ -78,7 +88,7 @@ function UserManagement() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ friendId }),
       });
-      fetchFriends();
+      fetchFriends(friendsCurrentPage);
     } catch (error) {
       console.error('Error adding friend:', error);
     }
@@ -90,7 +100,7 @@ function UserManagement() {
         await fetch(`http://localhost:8787/users/${id}/friends/${friendId}`, {
           method: 'DELETE',
         });
-        fetchFriends();
+        fetchFriends(friendsCurrentPage);
       } catch (error) {
         console.error('Error removing friend:', error);
       }
@@ -113,19 +123,26 @@ function UserManagement() {
       <div className="bg-white rounded-lg shadow-xl p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4">Friends</h2>
         {friends.length > 0 ? (
-          <ul>
-            {friends.map((friend) => (
-              <li key={friend.id} className="flex justify-between items-center mb-2">
-                <span>{friend.name} ({friend.email})</span>
-                <button
-                  onClick={() => removeFriend(friend.id)}
-                  className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul>
+              {friends.map((friend) => (
+                <li key={friend.id} className="flex justify-between items-center mb-2">
+                  <span>{friend.name} ({friend.email})</span>
+                  <button
+                    onClick={() => removeFriend(friend.id)}
+                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <Pagination
+              currentPage={friendsCurrentPage}
+              totalPages={friendsTotalPages}
+              onPageChange={setFriendsCurrentPage}
+            />
+          </>
         ) : (
           <p className="text-gray-600 italic">
             You don't have any friends yet. Use the search below to find and add friends!
@@ -168,6 +185,13 @@ function UserManagement() {
             </li>
           ))}
         </ul>
+        {searchResults.length > 0 && (
+          <Pagination
+            currentPage={searchCurrentPage}
+            totalPages={searchTotalPages}
+            onPageChange={(page) => searchUsers(searchTerm, page)}
+          />
+        )}
       </div>
       
       <button
