@@ -52,6 +52,7 @@ app.post('/users', zValidator('json', createUserSchema), async (c) => {
     const newUser = await db.insert(users).values({ name, email }).returning();
     return c.json(newUser[0], 201)
   } catch (error) {
+    console.error('Error creating user:', error);
     return c.json({ error: 'Error creating user' }, 500)
   }
 })
@@ -91,6 +92,7 @@ app.get('/users', zValidator('query', getUsersQuerySchema), async (c) => {
       currentPage: page
     });
   } catch (error) {
+    console.error('Error fetching users:', error);
     return c.json({ error: 'Error fetching users' }, 500);
   }
 })
@@ -108,6 +110,7 @@ app.post('/users/:id/friends', zValidator('json', addFriendSchema), async (c) =>
     const newFriendship = await db.insert(friendships).values({ userId, friendId }).returning();
     return c.json(newFriendship[0], 201)
   } catch (error) {
+    console.error('Error adding friend:', error);
     return c.json({ error: 'Error adding friend' }, 500)
   }
 })
@@ -129,6 +132,7 @@ app.delete('/users/:id/friends/:friendId', zValidator('param', removeFriendParam
       ));
     return c.json({ message: 'Friend removed successfully' }, 200)
   } catch (error) {
+    console.error('Error removing friend:', error);
     return c.json({ error: 'Error removing friend' }, 500)
   }
 })
@@ -169,6 +173,7 @@ app.get('/users/:id/friends', zValidator('param', getUserFriendsSchema.pick({ id
       currentPage: page
     });
   } catch (error) {
+    console.error('Error fetching friends:', error);
     return c.json({ error: 'Error fetching friends' }, 500);
   }
 })
@@ -231,6 +236,7 @@ app.get('/users/search', zValidator('query', searchUsersSchema), async (c) => {
       currentPage: page
     });
   } catch (error) {
+    console.error('Error searching users:', error);
     return c.json({ error: 'Error searching users' }, 500);
   }
 })
@@ -280,6 +286,7 @@ app.get('/users/:id', zValidator('param', deleteUserSchema), async (c) => {
     }
     return c.json(user[0])
   } catch (error) {
+    console.error('Error fetching user:', error);
     return c.json({ error: 'Error fetching user' }, 500)
   }
 })

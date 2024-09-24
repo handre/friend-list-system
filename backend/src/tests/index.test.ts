@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import app from '../index'; // Import your Hono app
 
 describe('API Endpoints', () => {
@@ -31,7 +32,7 @@ describe('API Endpoints', () => {
       expect(responseBody.email).toBe(newUser.email);
     });
 
-    it('should return 500 for invalid data', async () => {
+    it('should return 400 for invalid data', async () => {
       const invalidUser = { name: 'T', email: 'invalid-email' };
       const req = new Request('http://localhost/users', {
         method: 'POST',
@@ -40,7 +41,7 @@ describe('API Endpoints', () => {
       });
       const res = await app.request(req);
       
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(400);
       const responseBody = await res.json();
       expect(responseBody).toHaveProperty('error');
     });

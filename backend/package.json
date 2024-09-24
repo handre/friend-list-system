@@ -6,9 +6,8 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "testOld": "vitest",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate --dialect=postgresql --schema=./src/db/schema.ts --out=./src/db/migrations",
     "db:migrate": "node -r esbuild-register src/db/migrate.ts",
@@ -37,6 +36,7 @@
     "pg": "^8.13.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "ws": "^8.18.0",
     "zod": "^3.23.8"
   }
 }
