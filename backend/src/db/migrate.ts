@@ -1,10 +1,16 @@
+import { neon } from "@neondatabase/serverless";
+import { config } from 'dotenv';
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
-import { neon } from "@neondatabase/serverless";
 
-const sql = neon('postgresql://doge_labs_friend_list_owner:3GcN0aWFjgkx@ep-holy-block-a56xh866.us-east-2.aws.neon.tech/doge_labs_friend_list?sslmode=require');
-
+config({ path: '.dev.vars' });
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is not set");
+}
+const sql = neon(DATABASE_URL);
 const db = drizzle(sql);
+
 
 const main = async () => {
 	try {
@@ -20,3 +26,5 @@ const main = async () => {
 };
 
 main();
+
+export const runMigrations = main;

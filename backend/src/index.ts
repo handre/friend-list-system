@@ -47,7 +47,7 @@ const createUserSchema = z.object({
 
 app.post('/users', zValidator('json', createUserSchema), async (c) => {
   const { name, email } = c.req.valid('json')
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
   try {
     const newUser = await db.insert(users).values({ name, email }).returning();
     return c.json(newUser[0], 201)
@@ -64,7 +64,7 @@ const getUsersQuerySchema = z.object({
 
 app.get('/users', zValidator('query', getUsersQuerySchema), async (c) => {
   const { page } = c.req.valid('query')
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
   const limit = 5;
   const offset = (page - 1) * limit;
 
@@ -105,7 +105,7 @@ const addFriendSchema = z.object({
 app.post('/users/:id/friends', zValidator('json', addFriendSchema), async (c) => {
   const userId = parseInt(c.req.param('id'))
   const { friendId } = c.req.valid('json')
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
   try {
     const newFriendship = await db.insert(friendships).values({ userId, friendId }).returning();
     return c.json(newFriendship[0], 201)
@@ -123,7 +123,7 @@ const removeFriendParamsSchema = z.object({
 
 app.delete('/users/:id/friends/:friendId', zValidator('param', removeFriendParamsSchema), async (c) => {
   const { id: userId, friendId } = c.req.valid('param')
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
   try {
     await db.delete(friendships)
       .where(and(
@@ -148,7 +148,7 @@ app.get('/users/:id/friends', zValidator('param', getUserFriendsSchema.pick({ id
   const { page } = c.req.valid('query')
   const limit = 5;
   const offset = (page - 1) * limit;
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
 
   try {
     const [friends, totalCount] = await Promise.all([
@@ -180,7 +180,7 @@ app.get('/users/:id/friends', zValidator('param', getUserFriendsSchema.pick({ id
 
 // Get stats
 app.get('/stats', async (c) => {
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
   try {
     const stats = await db.select({
       totalUsers: sql<number>`cast(count(distinct ${users.id}) as int)`,
@@ -192,7 +192,7 @@ app.get('/stats', async (c) => {
 
     return c.json({ 
       totalUsers: stats[0]?.totalUsers || 0,
-      averageFriends: parseFloat(averageFriends.toFixed(2))
+      averageFriends: parseFloat(averageFriends.toFixed(2)) || 0
     })
   } catch (error) {
     console.error('Error calculating stats:', error);
@@ -210,7 +210,7 @@ app.get('/users/search', zValidator('query', searchUsersSchema), async (c) => {
   const { q: query, page } = c.req.valid('query')
   const limit = 5;
   const offset = (page - 1) * limit;
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
 
   try {
     const [searchResults, totalCount] = await Promise.all([
@@ -248,7 +248,7 @@ const deleteUserSchema = z.object({
 
 app.delete('/users/:id', zValidator('param', deleteUserSchema), async (c) => {
   const { id: userId } = c.req.valid('param')
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
   try {
     await db.transaction(async (tx) => {
       // Delete all friendships where the user is either the user or the friend
@@ -278,7 +278,7 @@ app.delete('/users/:id', zValidator('param', deleteUserSchema), async (c) => {
 // Get a single user
 app.get('/users/:id', zValidator('param', deleteUserSchema), async (c) => {
   const { id: userId } = c.req.valid('param')
-  const db = getDb();
+  const db = getDb(c.env.DATABASE_URL);
   try {
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (user.length === 0) {
