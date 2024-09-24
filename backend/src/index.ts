@@ -13,11 +13,12 @@
 
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { getDb } from "./db";
+import { getTestDb } from './tests/setup';
 import { users, friendships } from "./db/schema";
 import { eq, and, sql, or, like } from 'drizzle-orm';
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
+import { getDb } from './db';
 
 // Define the environment interface
 interface Env {

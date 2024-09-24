@@ -10,12 +10,3 @@ compatibility_flags = ["nodejs_compat"]
 # Note: Use secrets to store sensitive data.
 # - https://developers.cloudflare.com/workers/configuration/secrets/
 # [vars]
-[env.dev.vars]
-DATABASE_URL = "postgresql://doge_labs_friend_list_owner:3GcN0aWFjgkx@ep-holy-block-a56xh866.us-east-2.aws.neon.tech/doge_labs_friend_list?sslmode=require"
-JWT_SECRET = "your-secret-key-here"
-
-
-
-[env.test.vars]
-DATABASE_URL = "postgresql://doge_labs_friend_list_owner:3GcN0aWFjgkx@ep-holy-block-a56xh866.us-east-2.aws.neon.tech/doge_labs_friend_list_test?sslmode=require"
-JWT_SECRET = "your-test-secret-key-here"

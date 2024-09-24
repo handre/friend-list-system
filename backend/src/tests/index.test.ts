@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import app from '../index'; // Import your Hono app
+import { env } from 'cloudflare:test';
 
 describe('API Endpoints', () => {
   
@@ -17,19 +18,22 @@ describe('API Endpoints', () => {
   // Test the CREATE USER endpoint
   describe('POST /users', () => {
     it('should create a new user', async () => {
-      const newUser = { name: 'Test User', email: 'test.user@example.com' };
-      const req = new Request('http://localhost/users', {
+      const res = await app.request('/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser),
-      });
-      const res = await app.request(req);
-      
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'Test User',
+          email: 'test@example.com',
+        }),
+      }, env);
+
       expect(res.status).toBe(201);
-      const responseBody = await res.json() as { id: string; name: string; email: string };
-      expect(responseBody).toHaveProperty('id');
-      expect(responseBody.name).toBe(newUser.name);
-      expect(responseBody.email).toBe(newUser.email);
+      const body = await res.json();
+      expect(body).toHaveProperty('id');
+      expect(body.name).toBe('Test User');
+      expect(body.email).toBe('test@example.com');
     });
 
     it('should return 400 for invalid data', async () => {
