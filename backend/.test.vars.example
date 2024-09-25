@@ -1,0 +1,2 @@
+# .test.vars
+DATABASE_URL="postgresql://<username>:<password>@<host>:<port>/<database>?sslmode=require"
