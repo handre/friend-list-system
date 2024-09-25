@@ -52,7 +52,10 @@ app.post('/users', zValidator('json', createUserSchema), async (c) => {
   try {
     const newUser = await db.insert(users).values({ name, email }).returning();
     return c.json(newUser[0], 201)
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message?.includes('duplicate key value violates unique constraint "email_idx"')) {
+      return c.json({ error: 'User with this email already exists' }, 400)
+    }
     console.error('Error creating user:', error);
     return c.json({ error: 'Error creating user' }, 500)
   }
@@ -110,7 +113,10 @@ app.post('/users/:id/friends', zValidator('json', addFriendSchema), async (c) =>
   try {
     const newFriendship = await db.insert(friendships).values({ userId, friendId }).returning();
     return c.json(newFriendship[0], 201)
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message?.includes('duplicate key value violates unique constraint "unique_friendship_idx"')) {
+      return c.json({ error: 'User with this email already exists' }, 400)
+    }
     console.error('Error adding friend:', error);
     return c.json({ error: 'Error adding friend' }, 500)
   }

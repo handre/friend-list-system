@@ -5,5 +5,9 @@ export default defineConfig({
     globals: true,
     environment: 'miniflare',
     setupFiles: './src/tests/setup.ts',
+    coverage: {
+      exclude: ['src/tests/**', 'src/db/**'],
+      include: ['src/**'],
+    },
   },
 });

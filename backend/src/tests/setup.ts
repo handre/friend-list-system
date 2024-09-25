@@ -4,6 +4,8 @@ import { afterAll, beforeAll, beforeEach, vi } from 'vitest';
 import ws from 'ws';
 import { runMigrations } from '../db/migrate';
 import * as schema from '../db/schema';
+import { seedDatabase } from '../db/seed';
+import { sql } from 'drizzle-orm';
 
 let db: NeonDatabase<typeof schema>;
 
@@ -28,7 +30,6 @@ afterAll(async () => {
 
 // Reset the database state before each test
 beforeEach(async () => {
-  console.log("Resetting database");
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is not set");
@@ -36,12 +37,11 @@ beforeEach(async () => {
   const pool = new Pool({ connectionString });
   db = drizzle(pool, { schema });
   
-  await Promise.all([
-    db.delete(schema.friendships).execute(),
-    db.delete(schema.users).execute(),
-  ]);
+  await db.delete(schema.friendships).execute();
+  await db.delete(schema.users).execute();
 
-  console.log("Database reset");
+  // Seed the database
+  await seedDatabase();
 });
 
 // Export a function to get the database connection

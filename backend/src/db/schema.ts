@@ -18,6 +18,10 @@ export const friendships = pgTable("friendships", {
 	userId: integer("user_id").notNull().references(() => users.id),
 	friendId: integer("friend_id").notNull().references(() => users.id),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => {
+	return {
+		uniqueFriendship: uniqueIndex("unique_friendship_idx").on(table.userId, table.friendId),
+	};
 });
 
 export const usersRelations = relations(users, ({ many }) => ({

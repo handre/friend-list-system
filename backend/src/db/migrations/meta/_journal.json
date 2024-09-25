@@ -8,6 +8,13 @@
       "when": 1726673294054,
       "tag": "0000_white_anita_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1727225948040,
+      "tag": "0001_talented_solo",
+      "breakpoints": true
     }
   ]
 }
